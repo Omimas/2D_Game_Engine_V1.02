@@ -4,7 +4,7 @@
 #include <sstream>
 #include <random>
 #include <fstream>
-#include <functional> // std::less<void> tanımı için
+#include <functional>
 
 Engine::Engine()
     : isRunning(false),
@@ -121,7 +121,7 @@ void Engine::run() {
         handleEvents();
         update();
         render();
-        SDL_Delay(16); // 60 FPS için delay
+        SDL_Delay(16);
     }
 }
 
@@ -161,9 +161,7 @@ void Engine::handleKeyPress(SDL_Keycode key) {
                     askingForName = false;
                     showTextBox = false;
                     showingScoreboard = true;
-                    // En yüksek skor kontrolü ve konfeti efekti
                     if (currentMode == MODE_1 && !mode1Scores.empty() && score == 20 && (120 - timer) < mode1Scores[0].time) {
-                        std::cout << "New high score in Mode 1! Showing confetti..." << std::endl;
                         showConfetti = true;
                         confettiStartTime = SDL_GetTicks();
                         confettiParticles.clear();
@@ -183,7 +181,6 @@ void Engine::handleKeyPress(SDL_Keycode key) {
                         }
                     }
                     else if (currentMode == MODE_2 && (mode2Scores.empty() || score > mode2Scores[0].food)) {
-                        std::cout << "New high score in Mode 2! Showing confetti..." << std::endl;
                         showConfetti = true;
                         confettiStartTime = SDL_GetTicks();
                         confettiParticles.clear();
@@ -202,7 +199,6 @@ void Engine::handleKeyPress(SDL_Keycode key) {
                             confettiParticles.push_back(particle);
                         }
                     }
-                    std::cout << "Score saved! Showing leaderboard..." << std::endl;
                 }
             }
             else if (showingScoreboard) {
@@ -210,7 +206,6 @@ void Engine::handleKeyPress(SDL_Keycode key) {
                 showConfetti = false;
                 confettiParticles.clear();
                 resetSnakeGame();
-                std::cout << "Returning to main menu after leaderboard..." << std::endl;
             }
             else if (inputText.find("background is ") == 0) {
                 std::string colorName = inputText.substr(14);
@@ -236,12 +231,8 @@ void Engine::handleKeyPress(SDL_Keycode key) {
                 std::string token;
 
                 while (iss >> token) {
-                    if (token == "time" && iss >> customTime) {
-                        std::cout << "Custom time set to: " << customTime << std::endl;
-                    }
-                    else if (token == "food" && iss >> customFoodGoal) {
-                        std::cout << "Custom food goal set to: " << customFoodGoal << std::endl;
-                    }
+                    if (token == "time" && iss >> customTime) {}
+                    else if (token == "food" && iss >> customFoodGoal) {}
                 }
                 startSnakeGame(MODE_3, customTime, customFoodGoal);
                 showTextBox = false;
@@ -256,7 +247,6 @@ void Engine::handleKeyPress(SDL_Keycode key) {
                 startSnakeGame(currentMode, timer, foodGoal);
                 showTextBox = false;
                 inputText = "";
-                std::cout << "Snake game restarted!" << std::endl;
             }
             break;
         case SDLK_x:
@@ -265,7 +255,6 @@ void Engine::handleKeyPress(SDL_Keycode key) {
                 showConfetti = false;
                 confettiParticles.clear();
                 resetSnakeGame();
-                std::cout << "Returned to main menu from leaderboard..." << std::endl;
             }
             else {
                 resetSnakeGame();
@@ -273,7 +262,6 @@ void Engine::handleKeyPress(SDL_Keycode key) {
                 showHelp = false;
                 askingForName = false;
                 inputText = "";
-                std::cout << "Returned to the main menu." << std::endl;
             }
             break;
         case SDLK_f:
@@ -285,7 +273,6 @@ void Engine::handleKeyPress(SDL_Keycode key) {
             if (key >= 32 && key <= 126) {
                 if (inputText.length() < 20) {
                     inputText += static_cast<char>(key);
-                    std::cout << "Character added: " << static_cast<char>(key) << std::endl;
                 }
             }
             break;
@@ -345,12 +332,10 @@ void Engine::handleKeyPress(SDL_Keycode key) {
         case SDLK_c:
             showTextBox = true;
             showHelp = false;
-            std::cout << "TextBox is now visible!" << std::endl;
             break;
         case SDLK_s:
             if (snakeGameActive) {
                 isPaused = !isPaused;
-                std::cout << "Game " << (isPaused ? "paused" : "resumed") << std::endl;
             }
             break;
         case SDLK_x:
@@ -359,7 +344,6 @@ void Engine::handleKeyPress(SDL_Keycode key) {
                 showTextBox = false;
                 showHelp = false;
                 inputText = "";
-                std::cout << "Returned to the main menu." << std::endl;
             }
             break;
         }
@@ -403,11 +387,9 @@ void Engine::toggleFullscreen() {
     Uint32 fullscreenFlag = SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP;
     if (fullscreenFlag) {
         SDL_SetWindowFullscreen(window, 0);
-        std::cout << "Fullscreen mode disabled." << std::endl;
     }
     else {
         SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-        std::cout << "Fullscreen mode enabled." << std::endl;
     }
     SDL_GetWindowSize(window, &windowWidth, &windowHeight);
 }
@@ -420,7 +402,6 @@ void Engine::toggleGravityMode(const std::string& onText, const std::string& off
     velocityY = 0.0f;
     isOnGround = false;
     rectY = 100;
-    std::cout << "Gravity mode toggled: " << gravityText << std::endl;
 }
 
 void Engine::startSnakeGame(GameMode mode, int customTime, int customFoodGoal) {
@@ -455,7 +436,6 @@ void Engine::startSnakeGame(GameMode mode, int customTime, int customFoodGoal) {
 
     startTime = SDL_GetTicks() / 1000;
     lastSnakeMoveTime = SDL_GetTicks();
-    std::cout << "Snake game started in Mode " << static_cast<int>(mode) << "! Timer: " << timer << ", Food Goal: " << foodGoal << std::endl;
 }
 
 void Engine::updateSnakeGame() {
@@ -482,7 +462,6 @@ void Engine::updateSnakeGame() {
     if (abs(newX - foodPosition.x) < 10 && abs(newY - foodPosition.y) < 10) {
         foodPosition = { rand() % (windowWidth - 10), rand() % (windowHeight - 10) };
         score++;
-        std::cout << "Food eaten! Score: " << score << ", New food position: (" << foodPosition.x << ", " << foodPosition.y << ")" << std::endl;
     }
     else {
         snakeBody.pop_back();
@@ -490,12 +469,10 @@ void Engine::updateSnakeGame() {
 
     if (newX < 0 || newX >= windowWidth || newY < 0 || newY >= windowHeight) {
         gameOver = true;
-        std::cout << "Game ended: Hit wall! Position: (" << newX << ", " << newY << ")" << std::endl;
         if (currentMode != MODE_3) {
             askingForName = true;
             showTextBox = true;
             inputText = "";
-            std::cout << "Please enter your name: " << std::endl;
         }
         return;
     }
@@ -503,16 +480,10 @@ void Engine::updateSnakeGame() {
     for (size_t i = 1; i < snakeBody.size(); i++) {
         if (newX == snakeBody[i].x && newY == snakeBody[i].y) {
             gameOver = true;
-            std::cout << "Game ended: Hit self at segment " << i << "! Position: (" << newX << ", " << newY << ")" << std::endl;
-            std::cout << "Snake body segments:" << std::endl;
-            for (size_t j = 0; j < snakeBody.size(); j++) {
-                std::cout << "  Segment " << j << ": (" << snakeBody[j].x << ", " << snakeBody[j].y << ")" << std::endl;
-            }
             if (currentMode != MODE_3) {
                 askingForName = true;
                 showTextBox = true;
                 inputText = "";
-                std::cout << "Please enter your name: " << std::endl;
             }
             return;
         }
@@ -525,23 +496,19 @@ void Engine::updateSnakeGame() {
 
         if (score >= foodGoal) {
             gameOver = true;
-            std::cout << "Game ended: Won with score " << score << "!" << std::endl;
             if (currentMode != MODE_3) {
                 askingForName = true;
                 showTextBox = true;
                 inputText = "";
-                std::cout << "Please enter your name: " << std::endl;
             }
             return;
         }
         else if (timer <= 0) {
             gameOver = true;
-            std::cout << "Game ended: Time's up!" << std::endl;
             if (currentMode != MODE_3) {
                 askingForName = true;
                 showTextBox = true;
                 inputText = "";
-                std::cout << "Please enter your name: " << std::endl;
             }
             return;
         }
@@ -552,21 +519,19 @@ void Engine::renderSnakeGame() {
     if (!snakeGameActive) return;
 
     for (size_t i = 0; i < snakeBody.size(); i++) {
-        Uint8 greenValue = static_cast<Uint8>(255 - (i * 100 / static_cast<int>(std::max<size_t>(1, static_cast<size_t>(snakeBody.size())))));
+        Uint8 greenValue = static_cast<Uint8>(255 - (i * 100 / static_cast<int>(std::max<size_t>(1, snakeBody.size()))));
         SDL_SetRenderDrawColor(renderer, 0, greenValue, 0, 255);
         SDL_Rect rect;
         if (i == 0) {
             rect = { snakeBody[i].x - 2, snakeBody[i].y - 2, 16, 16 };
         }
-        else if (i == static_cast<size_t>(snakeBody.size() - 1)) { // size_t to size_t casting ile düzeltildi
+        else if (i == static_cast<size_t>(snakeBody.size() - 1)) {
             rect = { snakeBody[i].x + 2, snakeBody[i].y + 2, 8, 8 };
         }
         else {
             rect = { snakeBody[i].x, snakeBody[i].y, 12, 12 };
         }
-        if (SDL_RenderFillRect(renderer, &rect) < 0) {
-            std::cerr << "Failed to render snake segment: " << SDL_GetError() << std::endl;
-        }
+        SDL_RenderFillRect(renderer, &rect);
 
         if (i < snakeBody.size() - 1) {
             int x1 = snakeBody[i].x;
@@ -575,25 +540,19 @@ void Engine::renderSnakeGame() {
             int y2 = snakeBody[i + 1].y;
 
             if (x1 == x2) {
-                SDL_Rect connector = { x1, std::min(y1, y2), 12, static_cast<int>(abs(y1 - y2) + 12) };
-                if (SDL_RenderFillRect(renderer, &connector) < 0) {
-                    std::cerr << "Failed to render snake connector: " << SDL_GetError() << std::endl;
-                }
+                SDL_Rect connector = { x1, std::min(y1, y2), 12, static_cast<int>(abs(y1 - y2)) + 12 };
+                SDL_RenderFillRect(renderer, &connector);
             }
             else if (y1 == y2) {
-                SDL_Rect connector = { std::min(x1, x2), y1, static_cast<int>(abs(x1 - x2) + 12), 12 };
-                if (SDL_RenderFillRect(renderer, &connector) < 0) {
-                    std::cerr << "Failed to render snake connector: " << SDL_GetError() << std::endl;
-                }
+                SDL_Rect connector = { std::min(x1, x2), y1, static_cast<int>(abs(x1 - x2)) + 12, 12 };
+                SDL_RenderFillRect(renderer, &connector);
             }
         }
     }
 
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
     SDL_Rect foodRect = { foodPosition.x, foodPosition.y, 10, 10 };
-    if (SDL_RenderFillRect(renderer, &foodRect) < 0) {
-        std::cerr << "Failed to render food: " << SDL_GetError() << std::endl;
-    }
+    SDL_RenderFillRect(renderer, &foodRect);
 
     SDL_Color textColor = { 255, 255, 255, 255 };
     std::string scoreText = "Score: " + std::to_string(score);
@@ -602,9 +561,7 @@ void Engine::renderSnakeGame() {
         SDL_Texture* scoreTexture = SDL_CreateTextureFromSurface(renderer, scoreSurface);
         if (scoreTexture) {
             SDL_Rect scoreRect = { 10, 10, scoreSurface->w, scoreSurface->h };
-            if (SDL_RenderCopy(renderer, scoreTexture, nullptr, &scoreRect) < 0) {
-                std::cerr << "Failed to render score text: " << SDL_GetError() << std::endl;
-            }
+            SDL_RenderCopy(renderer, scoreTexture, nullptr, &scoreRect);
             SDL_DestroyTexture(scoreTexture);
         }
         SDL_FreeSurface(scoreSurface);
@@ -616,9 +573,7 @@ void Engine::renderSnakeGame() {
         SDL_Texture* timerTexture = SDL_CreateTextureFromSurface(renderer, timerSurface);
         if (timerTexture) {
             SDL_Rect timerRect = { windowWidth - 150, 10, timerSurface->w, timerSurface->h };
-            if (SDL_RenderCopy(renderer, timerTexture, nullptr, &timerRect) < 0) {
-                std::cerr << "Failed to render timer text: " << SDL_GetError() << std::endl;
-            }
+            SDL_RenderCopy(renderer, timerTexture, nullptr, &timerRect);
             SDL_DestroyTexture(timerTexture);
         }
         SDL_FreeSurface(timerSurface);
@@ -631,27 +586,11 @@ void Engine::renderSnakeGame() {
             SDL_Texture* boostTexture = SDL_CreateTextureFromSurface(renderer, boostSurface);
             if (boostTexture) {
                 SDL_Rect boostRect = { windowWidth - 150, 50, boostSurface->w, boostSurface->h };
-                if (SDL_RenderCopy(renderer, boostTexture, nullptr, &boostRect) < 0) {
-                    std::cerr << "Failed to render boost text: " << SDL_GetError() << std::endl;
-                }
+                SDL_RenderCopy(renderer, boostTexture, nullptr, &boostRect);
                 SDL_DestroyTexture(boostTexture);
             }
             SDL_FreeSurface(boostSurface);
         }
-    }
-
-    std::string fpsText = "FPS: " + std::to_string(fps);
-    SDL_Surface* fpsSurface = TTF_RenderText_Solid(font, fpsText.c_str(), textColor);
-    if (fpsSurface) {
-        SDL_Texture* fpsTexture = SDL_CreateTextureFromSurface(renderer, fpsSurface);
-        if (fpsTexture) {
-            SDL_Rect fpsRect = { 10, 50, fpsSurface->w, fpsSurface->h };
-            if (SDL_RenderCopy(renderer, fpsTexture, nullptr, &fpsRect) < 0) {
-                std::cerr << "Failed to render FPS text: " << SDL_GetError() << std::endl;
-            }
-            SDL_DestroyTexture(fpsTexture);
-        }
-        SDL_FreeSurface(fpsSurface);
     }
 
     if (askingForName) {
@@ -661,9 +600,7 @@ void Engine::renderSnakeGame() {
             SDL_Texture* promptTexture = SDL_CreateTextureFromSurface(renderer, promptSurface);
             if (promptTexture) {
                 SDL_Rect promptRect = { windowWidth / 2 - 100, windowHeight / 2 + 25, promptSurface->w, promptSurface->h };
-                if (SDL_RenderCopy(renderer, promptTexture, nullptr, &promptRect) < 0) {
-                    std::cerr << "Failed to render prompt text: " << SDL_GetError() << std::endl;
-                }
+                SDL_RenderCopy(renderer, promptTexture, nullptr, &promptRect);
                 SDL_DestroyTexture(promptTexture);
             }
             SDL_FreeSurface(promptSurface);
@@ -674,9 +611,7 @@ void Engine::renderSnakeGame() {
             SDL_Texture* nameTexture = SDL_CreateTextureFromSurface(renderer, nameSurface);
             if (nameTexture) {
                 SDL_Rect nameRect = { windowWidth / 2 - 100, windowHeight / 2 + 50, nameSurface->w, nameSurface->h };
-                if (SDL_RenderCopy(renderer, nameTexture, nullptr, &nameRect) < 0) {
-                    std::cerr << "Failed to render name text: " << SDL_GetError() << std::endl;
-                }
+                SDL_RenderCopy(renderer, nameTexture, nullptr, &nameRect);
                 SDL_DestroyTexture(nameTexture);
             }
             SDL_FreeSurface(nameSurface);
@@ -690,9 +625,7 @@ void Engine::renderSnakeGame() {
             SDL_Texture* pauseTexture = SDL_CreateTextureFromSurface(renderer, pauseSurface);
             if (pauseTexture) {
                 SDL_Rect pauseRect = { windowWidth / 2 - 50, windowHeight / 2 - 50, pauseSurface->w, pauseSurface->h };
-                if (SDL_RenderCopy(renderer, pauseTexture, nullptr, &pauseRect) < 0) {
-                    std::cerr << "Failed to render pause text: " << SDL_GetError() << std::endl;
-                }
+                SDL_RenderCopy(renderer, pauseTexture, nullptr, &pauseRect);
                 SDL_DestroyTexture(pauseTexture);
             }
             SDL_FreeSurface(pauseSurface);
@@ -710,22 +643,14 @@ void Engine::resetSnakeGame() {
     confettiParticles.clear();
     snakeBody.clear();
     currentMode = MODE_NONE;
-    std::cout << "Snake game reset." << std::endl;
 }
 
 void Engine::drawTextBox() {
-    std::cout << "Drawing text box..." << std::endl;
-
     SDL_Rect textBoxRect = { windowWidth / 2 - 400, windowHeight / 2 - 150, 800, 300 };
     SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
-    if (SDL_RenderFillRect(renderer, &textBoxRect) < 0) {
-        std::cerr << "Failed to render text box fill: " << SDL_GetError() << std::endl;
-    }
-
+    SDL_RenderFillRect(renderer, &textBoxRect);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    if (SDL_RenderDrawRect(renderer, &textBoxRect) < 0) {
-        std::cerr << "Failed to render text box outline: " << SDL_GetError() << std::endl;
-    }
+    SDL_RenderDrawRect(renderer, &textBoxRect);
 
     if (showHelp) {
         std::vector<std::string> helpText = {
@@ -755,15 +680,10 @@ void Engine::drawTextBox() {
                 SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
                 if (textTexture) {
                     SDL_Rect textRect = { windowWidth / 2 - 390, startY + static_cast<int>(i) * lineHeight, textSurface->w, textSurface->h };
-                    if (SDL_RenderCopy(renderer, textTexture, nullptr, &textRect) < 0) {
-                        std::cerr << "Failed to render help texture: " << SDL_GetError() << std::endl;
-                    }
+                    SDL_RenderCopy(renderer, textTexture, nullptr, &textRect);
                     SDL_DestroyTexture(textTexture);
                 }
                 SDL_FreeSurface(textSurface);
-            }
-            else {
-                std::cerr << "Failed to render help text: " << TTF_GetError() << std::endl;
             }
         }
     }
@@ -780,15 +700,10 @@ void Engine::drawTextBox() {
                 SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
                 if (textTexture) {
                     SDL_Rect textRect = { windowWidth / 2 - 390, windowHeight / 2 - 30 + static_cast<int>(i / maxCharsPerLine) * lineHeight, textSurface->w, textSurface->h };
-                    if (SDL_RenderCopy(renderer, textTexture, nullptr, &textRect) < 0) {
-                        std::cerr << "Failed to render input texture: " << SDL_GetError() << std::endl;
-                    }
+                    SDL_RenderCopy(renderer, textTexture, nullptr, &textRect);
                     SDL_DestroyTexture(textTexture);
                 }
                 SDL_FreeSurface(textSurface);
-            }
-            else {
-                std::cerr << "Failed to render input text: " << TTF_GetError() << std::endl;
             }
         }
     }
@@ -797,41 +712,31 @@ void Engine::drawTextBox() {
 void Engine::renderScoreboard() {
     SDL_Color textColor = { 255, 255, 255, 255 };
     TTF_Font* boldFont = TTF_OpenFont("fonts/arial.ttf", 24);
-    if (!boldFont) {
-        std::cerr << "Failed to load bold font: " << TTF_GetError() << std::endl;
-        boldFont = font;
-    }
+    if (!boldFont) boldFont = font;
     TTF_SetFontStyle(boldFont, TTF_STYLE_BOLD);
 
-    // Tablo başlıkları
     std::vector<std::string> leaderboard;
     leaderboard.push_back(" | Rank | Player         | Food | Time  |");
     leaderboard.push_back("-----------------------------------------");
 
     if (currentMode == MODE_1) {
         int timeTaken = 120 - timer;
-        int rank = 0;
         bool found = false;
         for (size_t i = 0; i < std::min(mode1Scores.size(), static_cast<size_t>(5)); ++i) {
-            std::string rankStr = std::to_string(i + 1);
-            std::string entry = " | " + std::string(5 - rankStr.length(), ' ') + rankStr + " | " +
+            std::string entry = " | " + std::string(5 - std::to_string(i + 1).length(), ' ') + std::to_string(i + 1) + " | " +
                 mode1Scores[i].playerName + std::string(15 - mode1Scores[i].playerName.length(), ' ') + " | " +
                 std::to_string(mode1Scores[i].food) + std::string(5 - std::to_string(mode1Scores[i].food).length(), ' ') + " | " +
                 std::to_string(mode1Scores[i].time) + "s" + std::string(6 - std::to_string(mode1Scores[i].time).length(), ' ');
+
             if (mode1Scores[i].food == 20 && mode1Scores[i].playerName == inputText && mode1Scores[i].time == timeTaken) {
                 entry += " (You)";
-                rank = static_cast<int>(i) + 1; // size_t'i int'e güvenli çeviriyoruz
                 found = true;
                 SDL_Surface* boldSurface = TTF_RenderText_Solid(boldFont, entry.c_str(), textColor);
                 if (boldSurface) {
                     SDL_Texture* boldTexture = SDL_CreateTextureFromSurface(renderer, boldSurface);
-                    if (boldTexture) {
-                        SDL_Rect textRect = { windowWidth / 2 - boldSurface->w / 2, windowHeight / 2 + static_cast<int>(i + 2) * 20, boldSurface->w, boldSurface->h };
-                        if (SDL_RenderCopy(renderer, boldTexture, nullptr, &textRect) < 0) {
-                            std::cerr << "Failed to render bold leaderboard entry: " << SDL_GetError() << std::endl;
-                        }
-                        SDL_DestroyTexture(boldTexture);
-                    }
+                    SDL_Rect textRect = { windowWidth / 2 - boldSurface->w / 2, windowHeight / 2 + static_cast<int>(i + 2) * 20, boldSurface->w, boldSurface->h };
+                    SDL_RenderCopy(renderer, boldTexture, nullptr, &textRect);
+                    SDL_DestroyTexture(boldTexture);
                     SDL_FreeSurface(boldSurface);
                 }
             }
@@ -839,59 +744,44 @@ void Engine::renderScoreboard() {
                 SDL_Surface* surface = TTF_RenderText_Solid(font, entry.c_str(), textColor);
                 if (surface) {
                     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-                    if (texture) {
-                        SDL_Rect textRect = { windowWidth / 2 - surface->w / 2, windowHeight / 2 + static_cast<int>(i + 2) * 20, surface->w, surface->h };
-                        if (SDL_RenderCopy(renderer, texture, nullptr, &textRect) < 0) {
-                            std::cerr << "Failed to render leaderboard entry: " << SDL_GetError() << std::endl;
-                        }
-                        SDL_DestroyTexture(texture);
-                    }
+                    SDL_Rect textRect = { windowWidth / 2 - surface->w / 2, windowHeight / 2 + static_cast<int>(i + 2) * 20, surface->w, surface->h };
+                    SDL_RenderCopy(renderer, texture, nullptr, &textRect);
+                    SDL_DestroyTexture(texture);
                     SDL_FreeSurface(surface);
                 }
             }
         }
         if (!found) {
-            std::string rankStr = std::to_string(mode1Scores.size() + 1);
-            std::string yourEntry = " | " + std::string(5 - rankStr.length(), ' ') + rankStr + " | " +
+            std::string yourEntry = " | " + std::string(5 - std::to_string(mode1Scores.size() + 1).length(), ' ') + std::to_string(mode1Scores.size() + 1) + " | " +
                 inputText + std::string(15 - inputText.length(), ' ') + " | " +
                 std::to_string(score) + std::string(5 - std::to_string(score).length(), ' ') + " | " +
-                std::to_string(timeTaken) + "s" + std::string(6 - std::to_string(timeTaken).length(), ' ') + " (You)";
+                std::to_string(120 - timer) + "s" + std::string(6 - std::to_string(120 - timer).length(), ' ') + " (You)";
             SDL_Surface* boldSurface = TTF_RenderText_Solid(boldFont, yourEntry.c_str(), textColor);
             if (boldSurface) {
                 SDL_Texture* boldTexture = SDL_CreateTextureFromSurface(renderer, boldSurface);
-                if (boldTexture) {
-                    SDL_Rect textRect = { windowWidth / 2 - boldSurface->w / 2, windowHeight / 2 + static_cast<int>(mode1Scores.size() + 2) * 20, boldSurface->w, boldSurface->h };
-                    if (SDL_RenderCopy(renderer, boldTexture, nullptr, &textRect) < 0) {
-                        std::cerr << "Failed to render bold your entry: " << SDL_GetError() << std::endl;
-                    }
-                    SDL_DestroyTexture(boldTexture);
-                }
+                SDL_Rect textRect = { windowWidth / 2 - boldSurface->w / 2, windowHeight / 2 + static_cast<int>(mode1Scores.size() + 2) * 20, boldSurface->w, boldSurface->h };
+                SDL_RenderCopy(renderer, boldTexture, nullptr, &textRect);
+                SDL_DestroyTexture(boldTexture);
                 SDL_FreeSurface(boldSurface);
             }
         }
     }
     else if (currentMode == MODE_2) {
-        int rank = 0;
         bool found = false;
         for (size_t i = 0; i < std::min(mode2Scores.size(), static_cast<size_t>(5)); ++i) {
-            std::string rankStr = std::to_string(i + 1);
-            std::string entry = " | " + std::string(5 - rankStr.length(), ' ') + rankStr + " | " +
+            std::string entry = " | " + std::string(5 - std::to_string(i + 1).length(), ' ') + std::to_string(i + 1) + " | " +
                 mode2Scores[i].playerName + std::string(15 - mode2Scores[i].playerName.length(), ' ') + " | " +
                 std::to_string(mode2Scores[i].food) + std::string(5 - std::to_string(mode2Scores[i].food).length(), ' ') + " | --";
+
             if (mode2Scores[i].playerName == inputText && mode2Scores[i].food == score) {
                 entry += " (You)";
-                rank = static_cast<int>(i) + 1; // size_t'i int'e güvenli çeviriyoruz
                 found = true;
                 SDL_Surface* boldSurface = TTF_RenderText_Solid(boldFont, entry.c_str(), textColor);
                 if (boldSurface) {
                     SDL_Texture* boldTexture = SDL_CreateTextureFromSurface(renderer, boldSurface);
-                    if (boldTexture) {
-                        SDL_Rect textRect = { windowWidth / 2 - boldSurface->w / 2, windowHeight / 2 + static_cast<int>(i + 2) * 20, boldSurface->w, boldSurface->h };
-                        if (SDL_RenderCopy(renderer, boldTexture, nullptr, &textRect) < 0) {
-                            std::cerr << "Failed to render bold leaderboard entry: " << SDL_GetError() << std::endl;
-                        }
-                        SDL_DestroyTexture(boldTexture);
-                    }
+                    SDL_Rect textRect = { windowWidth / 2 - boldSurface->w / 2, windowHeight / 2 + static_cast<int>(i + 2) * 20, boldSurface->w, boldSurface->h };
+                    SDL_RenderCopy(renderer, boldTexture, nullptr, &textRect);
+                    SDL_DestroyTexture(boldTexture);
                     SDL_FreeSurface(boldSurface);
                 }
             }
@@ -899,96 +789,72 @@ void Engine::renderScoreboard() {
                 SDL_Surface* surface = TTF_RenderText_Solid(font, entry.c_str(), textColor);
                 if (surface) {
                     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-                    if (texture) {
-                        SDL_Rect textRect = { windowWidth / 2 - surface->w / 2, windowHeight / 2 + static_cast<int>(i + 2) * 20, surface->w, surface->h };
-                        if (SDL_RenderCopy(renderer, texture, nullptr, &textRect) < 0) {
-                            std::cerr << "Failed to render leaderboard entry: " << SDL_GetError() << std::endl;
-                        }
-                        SDL_DestroyTexture(texture);
-                    }
+                    SDL_Rect textRect = { windowWidth / 2 - surface->w / 2, windowHeight / 2 + static_cast<int>(i + 2) * 20, surface->w, surface->h };
+                    SDL_RenderCopy(renderer, texture, nullptr, &textRect);
+                    SDL_DestroyTexture(texture);
                     SDL_FreeSurface(surface);
                 }
             }
         }
         if (!found) {
-            std::string rankStr = std::to_string(mode2Scores.size() + 1);
-            std::string yourEntry = " | " + std::string(5 - rankStr.length(), ' ') + rankStr + " | " +
+            std::string yourEntry = " | " + std::string(5 - std::to_string(mode2Scores.size() + 1).length(), ' ') + std::to_string(mode2Scores.size() + 1) + " | " +
                 inputText + std::string(15 - inputText.length(), ' ') + " | " +
                 std::to_string(score) + std::string(5 - std::to_string(score).length(), ' ') + " | -- (You)";
             SDL_Surface* boldSurface = TTF_RenderText_Solid(boldFont, yourEntry.c_str(), textColor);
             if (boldSurface) {
                 SDL_Texture* boldTexture = SDL_CreateTextureFromSurface(renderer, boldSurface);
-                if (boldTexture) {
-                    SDL_Rect textRect = { windowWidth / 2 - boldSurface->w / 2, windowHeight / 2 + static_cast<int>(mode2Scores.size() + 2) * 20, boldSurface->w, boldSurface->h };
-                    if (SDL_RenderCopy(renderer, boldTexture, nullptr, &textRect) < 0) {
-                        std::cerr << "Failed to render bold your entry: " << SDL_GetError() << std::endl;
-                    }
-                    SDL_DestroyTexture(boldTexture);
-                }
+                SDL_Rect textRect = { windowWidth / 2 - boldSurface->w / 2, windowHeight / 2 + static_cast<int>(mode2Scores.size() + 2) * 20, boldSurface->w, boldSurface->h };
+                SDL_RenderCopy(renderer, boldTexture, nullptr, &textRect);
+                SDL_DestroyTexture(boldTexture);
                 SDL_FreeSurface(boldSurface);
             }
         }
     }
 
-    // "Press Enter or X to return" satırı
     std::string returnText = "Press Enter or X to return";
     SDL_Surface* returnSurface = TTF_RenderText_Solid(font, returnText.c_str(), textColor);
     if (returnSurface) {
         SDL_Texture* returnTexture = SDL_CreateTextureFromSurface(renderer, returnSurface);
-        if (returnTexture) {
-            SDL_Rect returnRect = { windowWidth / 2 - returnSurface->w / 2, windowHeight / 2 + static_cast<int>(std::max(mode1Scores.size(), mode2Scores.size()) + 3) * 20, returnSurface->w, returnSurface->h };
-            if (SDL_RenderCopy(renderer, returnTexture, nullptr, &returnRect) < 0) {
-                std::cerr << "Failed to render return text: " << SDL_GetError() << std::endl;
-            }
-            SDL_DestroyTexture(returnTexture);
-        }
+        SDL_Rect returnRect = { windowWidth / 2 - returnSurface->w / 2, windowHeight / 2 + static_cast<int>(std::max(mode1Scores.size(), mode2Scores.size()) + 3) * 20, returnSurface->w, returnSurface->h };
+        SDL_RenderCopy(renderer, returnTexture, nullptr, &returnRect);
+        SDL_DestroyTexture(returnTexture);
         SDL_FreeSurface(returnSurface);
     }
 
     if (boldFont != font) TTF_CloseFont(boldFont);
-
-    // Konfeti efektini render et (debug için mesaj ekliyoruz)
-    if (showConfetti) {
-        std::cout << "Rendering confetti with " << confettiParticles.size() << " particles..." << std::endl;
-        renderConfetti();
-    }
 }
 
 void Engine::updateConfetti() {
     if (!showConfetti) return;
 
     Uint32 currentTime = SDL_GetTicks();
-    if (currentTime - confettiStartTime > 2000) { // 2 saniye sonra konfeti kapanır
+    if (currentTime - confettiStartTime > 2000) {
         showConfetti = false;
         confettiParticles.clear();
-        std::cout << "Confetti effect ended." << std::endl;
         return;
     }
 
     for (auto& particle : confettiParticles) {
-        particle.x = static_cast<float>(particle.x + particle.velocityX * deltaTime * 60.0f); // Düzeltme
-        particle.y = static_cast<float>(particle.y + particle.velocityY * deltaTime * 60.0f); // Düzeltme
-        particle.velocityY += 0.1f * deltaTime * 60.0f; // Yerçekimi efekti
+        particle.x += particle.velocityX * deltaTime * 60.0f;
+        particle.y += particle.velocityY * deltaTime * 60.0f;
+        particle.velocityY += 0.1f * deltaTime * 60.0f;
 
-        // Ekran sınırlarını kontrol et
         if (particle.x < 0) particle.x = 0;
-        if (static_cast<int>(particle.x) > windowWidth) particle.x = static_cast<float>(windowWidth); // Düzeltme
-        if (static_cast<int>(particle.y) > windowHeight) particle.y = static_cast<float>(windowHeight); // Düzeltme
+        if (static_cast<int>(particle.x) > windowWidth) particle.x = static_cast<float>(windowWidth);
+        if (static_cast<int>(particle.y) > windowHeight) particle.y = static_cast<float>(windowHeight);
     }
 }
 
 void Engine::renderConfetti() {
     for (const auto& particle : confettiParticles) {
         SDL_SetRenderDrawColor(renderer, particle.color.r, particle.color.g, particle.color.b, particle.color.a);
-        SDL_Rect rect = { 
-            static_cast<int>(particle.x), // float'tan int'e dönüştürüldü
-            static_cast<int>(particle.y), // float'tan int'e dönüştürüldü
-            5, 
-            5 
-        }; // Küçük konfeti noktaları
-        if (SDL_RenderFillRect(renderer, &rect) < 0) {
-            std::cerr << "Failed to render confetti particle: " << SDL_GetError() << std::endl;
-        }
+        SDL_Rect rect = {
+            static_cast<int>(particle.x),
+            static_cast<int>(particle.y),
+            5,
+            5
+        };
+        SDL_RenderFillRect(renderer, &rect);
     }
 }
 
@@ -998,7 +864,6 @@ void Engine::setBackgroundColor(const std::string& colorName) {
     else if (colorName == "red") backgroundColor = { 255, 0, 0, 255 };
     else if (colorName == "green") backgroundColor = { 0, 255, 0, 255 };
     else if (colorName == "blue") backgroundColor = { 0, 0, 255, 255 };
-    else std::cerr << "Unknown color: " << colorName << std::endl;
 }
 
 void Engine::update() {
@@ -1039,18 +904,14 @@ void Engine::update() {
         fps = frameCount;
         frameCount = 0;
         lastFPSUpdateTime = currentTime;
-        std::cout << "FPS: " << fps << std::endl;
     }
 }
 
 void Engine::render() {
     SDL_SetRenderDrawColor(renderer, backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a);
-    if (SDL_RenderClear(renderer) < 0) {
-        std::cerr << "Failed to clear renderer: " << SDL_GetError() << std::endl;
-    }
+    SDL_RenderClear(renderer);
 
     if (showingScoreboard) {
-        std::cout << "Rendering scoreboard..." << std::endl;
         renderScoreboard();
     }
     else if (snakeGameActive) {
@@ -1059,21 +920,15 @@ void Engine::render() {
     else {
         SDL_Rect rect = { rectX, rectY, rectWidth, rectHeight };
         SDL_SetRenderDrawColor(renderer, rectColor.r, rectColor.g, rectColor.b, rectColor.a);
-        if (SDL_RenderFillRect(renderer, &rect) < 0) {
-            std::cerr << "Failed to render rectangle: " << SDL_GetError() << std::endl;
-        }
+        SDL_RenderFillRect(renderer, &rect);
 
         SDL_Color textColor = gravityMode ? SDL_Color{ 255, 0, 0, 255 } : SDL_Color{ 255, 255, 255, 255 };
         SDL_Surface* textSurface = TTF_RenderText_Solid(font, gravityText.c_str(), textColor);
         if (textSurface) {
             SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-            if (textTexture) {
-                SDL_Rect textRect = { windowWidth - 200, 10, textSurface->w, textSurface->h };
-                if (SDL_RenderCopy(renderer, textTexture, nullptr, &textRect) < 0) {
-                    std::cerr << "Failed to render gravity text: " << SDL_GetError() << std::endl;
-                }
-                SDL_DestroyTexture(textTexture);
-            }
+            SDL_Rect textRect = { windowWidth - 200, 10, textSurface->w, textSurface->h };
+            SDL_RenderCopy(renderer, textTexture, nullptr, &textRect);
+            SDL_DestroyTexture(textTexture);
             SDL_FreeSurface(textSurface);
         }
     }
@@ -1083,30 +938,25 @@ void Engine::render() {
     }
 
     if (showConfetti) {
-        std::cout << "Rendering confetti..." << std::endl;
         renderConfetti();
     }
 
-    if (SDL_RenderPresent(renderer) < 0) {
-        std::cerr << "Failed to present renderer: " << SDL_GetError() << std::endl;
-    }
+    SDL_RenderPresent(renderer);
 }
 
 void Engine::saveScore() {
     if (currentMode == MODE_1) {
         int timeTaken = 120 - timer;
         mode1Scores.push_back({ inputText, score, timeTaken });
-        std::sort(mode1Scores.begin(), mode1Scores.end(), [](const ScoreEntry& a, const ScoreEntry& b) -> bool {
+        std::sort(mode1Scores.begin(), mode1Scores.end(), [](const ScoreEntry& a, const ScoreEntry& b) {
             return (a.food == 20 && b.food == 20) ? (a.time < b.time) : (a.food > b.food);
             });
-
     }
     else if (currentMode == MODE_2) {
         mode2Scores.push_back({ inputText, score, 0 });
-        std::sort(mode2Scores.begin(), mode2Scores.end(), [](const ScoreEntry& a, const ScoreEntry& b) -> bool {
+        std::sort(mode2Scores.begin(), mode2Scores.end(), [](const ScoreEntry& a, const ScoreEntry& b) {
             return a.food > b.food;
             });
-
     }
 
     std::ofstream file("scores.txt");
@@ -1120,9 +970,6 @@ void Engine::saveScore() {
             file << entry.playerName << " " << entry.food << "\n";
         }
         file.close();
-    }
-    else {
-        std::cerr << "Unable to save scores to file!" << std::endl;
     }
 }
 
@@ -1157,7 +1004,10 @@ void Engine::loadScores() {
         }
         file.close();
 
-        std::sort(mode1Scores.begin(), mode1Scores.end());
+        std::sort(mode1Scores.begin(), mode1Scores.end(), [](const ScoreEntry& a, const ScoreEntry& b) {
+            return (a.food == 20 && b.food == 20) ? (a.time < b.time) : (a.food > b.food);
+            });
+
         std::sort(mode2Scores.begin(), mode2Scores.end(), [](const ScoreEntry& a, const ScoreEntry& b) {
             return a.food > b.food;
             });
