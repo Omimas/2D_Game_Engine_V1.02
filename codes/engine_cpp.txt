@@ -1,0 +1,697 @@
+#include "Engine.h"
+#include <iostream>
+#include <algorithm>
+#include <sstream>
+
+Engine::Engine()
+    : isRunning(false),
+    window(nullptr),
+    renderer(nullptr),
+    font(nullptr),
+    rectX(100),
+    rectY(100),
+    rectWidth(200),
+    rectHeight(200),
+    gravityMode(false),
+    gravityText("Gravity mode off"),
+    gravitySpeed(0.5f),
+    gravityAcceleration(0.05f),
+    windowWidth(0),
+    windowHeight(0),
+    rectColor({ 255, 0, 0, 255 }),
+    showTextBox(false),
+    inputText(""),
+    snakeGameActive(false),
+    snakeDirection(RIGHT),
+    snakeSpeed(2),
+    snakeBoostedSpeed(4),
+    gameOver(false),
+    score(0),
+    timer(120),
+    startTime(0),
+    isPaused(false),
+    frameCount(0),
+    lastFPSUpdateTime(0),
+    fps(0),
+    foodPosition({ 0, 0 }),
+    showHelp(false),
+    backgroundColor({ 0, 0, 0, 255 }),
+    velocityY(0.0f),
+    bounceFactor(0.7f),
+    groundFriction(0.1f),
+    isOnGround(false),
+    lastUpdateTime(SDL_GetTicks()),
+    deltaTime(0.0f),
+    lastSnakeMoveTime(SDL_GetTicks()),
+    currentMode(MODE_NONE),
+    foodGoal(20) {
+    std::cout << "Engine object created." << std::endl;
+}
+
+Engine::~Engine() {
+    if (renderer) SDL_DestroyRenderer(renderer);
+    if (window) SDL_DestroyWindow(window);
+    if (font) TTF_CloseFont(font);
+    TTF_Quit();
+    SDL_Quit();
+    std::cout << "Engine object destroyed." << std::endl;
+}
+
+bool Engine::initialize() {
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        std::cerr << "SDL could not initialize: " << SDL_GetError() << std::endl;
+        return false;
+    }
+
+    if (TTF_Init() == -1) {
+        std::cerr << "TTF could not initialize: " << TTF_GetError() << std::endl;
+        SDL_Quit();
+        return false;
+    }
+
+    window = SDL_CreateWindow("2D Game Engine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1024, 800, SDL_WINDOW_SHOWN);
+    if (!window) {
+        std::cerr << "Window could not be created: " << SDL_GetError() << std::endl;
+        TTF_Quit();
+        SDL_Quit();
+        return false;
+    }
+
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (!renderer) {
+        std::cerr << "Renderer could not be created: " << SDL_GetError() << std::endl;
+        SDL_DestroyWindow(window);
+        TTF_Quit();
+        SDL_Quit();
+        return false;
+    }
+
+    font = TTF_OpenFont("fonts/arial.ttf", 24);
+    if (!font) {
+        std::cerr << "Font could not be loaded: " << TTF_GetError() << std::endl;
+        std::cerr << "Font path: fonts/arial.ttf" << std::endl;
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        TTF_Quit();
+        SDL_Quit();
+        return false;
+    }
+
+    SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+
+    isRunning = true;
+    std::cout << "Graphics library initialized." << std::endl;
+    return true;
+}
+
+void Engine::handleEvents() {
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT) {
+            isRunning = false;
+        }
+        if (event.type == SDL_KEYDOWN) {
+            handleKeyPress(event.key.keysym.sym);
+        }
+        if (event.type == SDL_KEYUP) {
+            handleKeyRelease(event.key.keysym.sym);
+        }
+        if (event.type == SDL_MOUSEMOTION && !gravityMode) {
+            handleMouseMotion(event.motion.x, event.motion.y);
+        }
+        if (event.type == SDL_MOUSEWHEEL) {
+            handleMouseWheel(event.wheel.y);
+        }
+    }
+}
+
+void Engine::handleKeyPress(SDL_Keycode key) {
+    if (showTextBox) {
+        switch (key) {
+        case SDLK_BACKSPACE:
+            if (!inputText.empty()) {
+                inputText.pop_back();
+            }
+            break;
+        case SDLK_RETURN:
+            if (inputText.find("background is ") == 0) {
+                std::string colorName = inputText.substr(14);
+                setBackgroundColor(colorName);
+                showTextBox = false;
+                inputText = "";
+            }
+            else if (inputText == "play mode1") {
+                startSnakeGame(MODE_1);
+                showTextBox = false;
+                inputText = "";
+            }
+            else if (inputText == "play mode2") {
+                startSnakeGame(MODE_2);
+                showTextBox = false;
+                inputText = "";
+            }
+            else if (inputText.find("play mode3") == 0) {
+                int customTime = 120;
+                int customFoodGoal = 20;
+                std::string args = inputText.substr(10);
+                std::istringstream iss(args);
+                std::string token;
+
+                while (iss >> token) {
+                    if (token == "time" && iss >> customTime) {
+                        std::cout << "Custom time set to: " << customTime << std::endl;
+                    }
+                    else if (token == "food" && iss >> customFoodGoal) {
+                        std::cout << "Custom food goal set to: " << customFoodGoal << std::endl;
+                    }
+                }
+                startSnakeGame(MODE_3, customTime, customFoodGoal);
+                showTextBox = false;
+                inputText = "";
+            }
+            else if (inputText == "help") {
+                showHelp = true;
+                inputText = "";
+            }
+            else if (inputText == "restart") {
+                resetSnakeGame();
+                startSnakeGame(currentMode, timer, foodGoal);
+                showTextBox = false;
+                inputText = "";
+                std::cout << "Snake game restarted!" << std::endl;
+            }
+            break;
+        case SDLK_x:
+            resetSnakeGame();
+            showTextBox = false;
+            showHelp = false;
+            inputText = "";
+            std::cout << "Returned to the main menu." << std::endl;
+            break;
+        case SDLK_f:
+            toggleFullscreen();
+            showTextBox = false;
+            inputText = "";
+            break;
+        default:
+            if (key >= 32 && key <= 126) {
+                if (inputText.length() < 96 * 2) {
+                    inputText += static_cast<char>(key);
+                    std::cout << "Character added: " << static_cast<char>(key) << std::endl;
+                }
+            }
+            break;
+        }
+    }
+    else {
+        switch (key) {
+        case SDLK_UP:
+            if (snakeDirection != DOWN) {
+                snakeDirection = UP;
+                snakeSpeed = snakeBoostedSpeed;
+            }
+            break;
+        case SDLK_DOWN:
+            if (snakeDirection != UP) {
+                snakeDirection = DOWN;
+                snakeSpeed = snakeBoostedSpeed;
+            }
+            break;
+        case SDLK_LEFT:
+            if (snakeDirection != RIGHT) {
+                snakeDirection = LEFT;
+                snakeSpeed = snakeBoostedSpeed;
+            }
+            break;
+        case SDLK_RIGHT:
+            if (snakeDirection != LEFT) {
+                snakeDirection = RIGHT;
+                snakeSpeed = snakeBoostedSpeed;
+            }
+            break;
+        case SDLK_e:
+            if (!snakeGameActive) {
+                toggleGravityMode("Earth Gravity is on", "Earth Gravity is off", 0.1f, 0.8f);
+            }
+            break;
+        case SDLK_m:
+            if (!snakeGameActive) {
+                toggleGravityMode("Moon Gravity is on", "Moon Gravity is off", 0.1f, 0.13f);
+            }
+            break;
+        case SDLK_r:
+            if (!snakeGameActive) {
+                rectColor = { 255, 0, 0, 255 };
+            }
+            break;
+        case SDLK_g:
+            if (!snakeGameActive) {
+                rectColor = { 0, 255, 0, 255 };
+            }
+            break;
+        case SDLK_b:
+            if (!snakeGameActive) {
+                rectColor = { 0, 0, 255, 255 };
+            }
+            break;
+        case SDLK_c:
+            showTextBox = true;
+            showHelp = false;
+            std::cout << "TextBox is now visible!" << std::endl;
+            break;
+        case SDLK_s:
+            if (snakeGameActive) {
+                isPaused = !isPaused;
+                std::cout << "Game " << (isPaused ? "paused" : "resumed") << std::endl;
+            }
+            break;
+        case SDLK_x:
+            if (snakeGameActive || showTextBox || showHelp) {
+                resetSnakeGame();
+                showTextBox = false;
+                showHelp = false;
+                inputText = "";
+                std::cout << "Returned to the main menu." << std::endl;
+            }
+            break;
+        }
+    }
+}
+
+void Engine::handleKeyRelease(SDL_Keycode key) {
+    switch (key) {
+    case SDLK_UP:
+    case SDLK_DOWN:
+    case SDLK_LEFT:
+    case SDLK_RIGHT:
+        snakeSpeed = 2;
+        break;
+    }
+}
+
+void Engine::handleMouseMotion(int mouseX, int mouseY) {
+    rectX = mouseX - rectWidth / 2;
+    rectY = mouseY - rectHeight / 2;
+
+    rectX = std::max(0, std::min(windowWidth - rectWidth, rectX));
+    rectY = std::max(0, std::min(windowHeight - rectHeight, rectY));
+}
+
+void Engine::handleMouseWheel(int y) {
+    if (y > 0) {
+        rectWidth += 10;
+        rectHeight += 10;
+    }
+    else if (y < 0) {
+        rectWidth -= 10;
+        rectHeight -= 10;
+    }
+
+    rectWidth = std::max(50, std::min(400, rectWidth));
+    rectHeight = std::max(50, std::min(400, rectHeight));
+}
+
+void Engine::toggleFullscreen() {
+    Uint32 fullscreenFlag = SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP;
+    if (fullscreenFlag) {
+        SDL_SetWindowFullscreen(window, 0);
+        std::cout << "Fullscreen mode disabled." << std::endl;
+    }
+    else {
+        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+        std::cout << "Fullscreen mode enabled." << std::endl;
+    }
+    SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+}
+
+void Engine::toggleGravityMode(const std::string& onText, const std::string& offText, float speed, float acceleration) {
+    gravityMode = !gravityMode;
+    gravityText = gravityMode ? onText : offText;
+    gravitySpeed = speed;
+    gravityAcceleration = acceleration;
+    velocityY = 0.0f;
+    isOnGround = false;
+    rectY = 100;
+    std::cout << "Gravity mode toggled: " << gravityText << std::endl;
+}
+
+void Engine::startSnakeGame(GameMode mode, int customTime, int customFoodGoal) {
+    snakeGameActive = true;
+    gameOver = false;
+    isPaused = false;
+    snakeBody.clear();
+    snakeBody.push_back({ windowWidth / 2, windowHeight / 2 });
+    snakeDirection = RIGHT;
+    snakeSpeed = 2;
+    snakeBoostedSpeed = 4;
+    foodPosition = { rand() % (windowWidth - 10), rand() % (windowHeight - 10) };
+    score = 0;
+    currentMode = mode;
+
+    if (mode == MODE_1) {
+        timer = 120;
+        foodGoal = 20;
+    }
+    else if (mode == MODE_2) {
+        timer = -1; // Sınırsız süre
+        foodGoal = -1; // Sınırsız yem
+    }
+    else if (mode == MODE_3) {
+        timer = customTime;
+        foodGoal = customFoodGoal;
+    }
+
+    startTime = SDL_GetTicks() / 1000;
+    lastSnakeMoveTime = SDL_GetTicks();
+    std::cout << "Snake game started in Mode " << static_cast<int>(mode) << "! Timer: " << timer << ", Food Goal: " << foodGoal << std::endl;
+}
+
+void Engine::updateSnakeGame() {
+    if (!snakeGameActive || gameOver || isPaused) return;
+
+    Uint32 currentTime = SDL_GetTicks();
+    Uint32 moveInterval = (snakeSpeed == snakeBoostedSpeed) ? 20 : 40;
+    if (currentTime - lastSnakeMoveTime < moveInterval) return;
+    lastSnakeMoveTime = currentTime;
+
+    int newX = snakeBody[0].first;
+    int newY = snakeBody[0].second;
+
+    int stepSize = 4;
+    switch (snakeDirection) {
+    case UP: newY -= stepSize; break;
+    case DOWN: newY += stepSize; break;
+    case LEFT: newX -= stepSize; break;
+    case RIGHT: newX += stepSize; break;
+    }
+
+    snakeBody.insert(snakeBody.begin(), { newX, newY });
+
+    if (abs(newX - foodPosition.first) < 10 && abs(newY - foodPosition.second) < 10) {
+        foodPosition = { rand() % (windowWidth - 10), rand() % (windowHeight - 10) };
+        score++;
+        std::cout << "Food eaten! Score: " << score << ", New food position: (" << foodPosition.first << ", " << foodPosition.second << ")" << std::endl;
+    }
+    else {
+        snakeBody.pop_back();
+    }
+
+    if (newX < 0 || newX >= windowWidth || newY < 0 || newY >= windowHeight) {
+        gameOver = true;
+        std::cout << "Game Over: Hit wall! Position: (" << newX << ", " << newY << ")" << std::endl;
+        return;
+    }
+
+    for (size_t i = 1; i < snakeBody.size(); i++) {
+        if (newX == snakeBody[i].first && newY == snakeBody[i].second) {
+            gameOver = true;
+            std::cout << "Game Over: Hit self at segment " << i << "! Position: (" << newX << ", " << newY << ")" << std::endl;
+            std::cout << "Snake body segments:" << std::endl;
+            for (size_t j = 0; j < snakeBody.size(); j++) {
+                std::cout << "  Segment " << j << ": (" << snakeBody[j].first << ", " << snakeBody[j].second << ")" << std::endl;
+            }
+            return;
+        }
+    }
+
+    if (currentMode != MODE_2) {
+        int currentTimeSec = SDL_GetTicks() / 1000;
+        timer = (currentMode == MODE_1 || currentMode == MODE_3) ? (timer - (currentTimeSec - startTime)) : timer;
+        startTime = currentTimeSec;
+
+        if (score >= foodGoal) {
+            gameOver = true;
+            std::cout << "Game Over: Won with score " << score << "!" << std::endl;
+        }
+        else if (timer <= 0) {
+            gameOver = true;
+            std::cout << "Game Over: Time's up!" << std::endl;
+        }
+    }
+}
+
+void Engine::renderSnakeGame() {
+    if (!snakeGameActive) return;
+
+    for (size_t i = 0; i < snakeBody.size(); i++) {
+        Uint8 greenValue = 255 - (i * 100 / snakeBody.size());
+        SDL_SetRenderDrawColor(renderer, 0, greenValue, 0, 255);
+
+        if (i == 0) {
+            SDL_Rect rect = { snakeBody[i].first - 2, snakeBody[i].second - 2, 16, 16 };
+            SDL_RenderFillRect(renderer, &rect);
+        }
+        else if (i == snakeBody.size() - 1) {
+            SDL_Rect rect = { snakeBody[i].first + 2, snakeBody[i].second + 2, 8, 8 };
+            SDL_RenderFillRect(renderer, &rect);
+        }
+        else {
+            SDL_Rect rect = { snakeBody[i].first, snakeBody[i].second, 12, 12 };
+            SDL_RenderFillRect(renderer, &rect);
+        }
+
+        if (i < snakeBody.size() - 1) {
+            int x1 = snakeBody[i].first;
+            int y1 = snakeBody[i].second;
+            int x2 = snakeBody[i + 1].first;
+            int y2 = snakeBody[i + 1].second;
+
+            if (x1 == x2) {
+                SDL_Rect connector = { x1, std::min(y1, y2), 12, abs(y1 - y2) + 12 };
+                SDL_RenderFillRect(renderer, &connector);
+            }
+            else if (y1 == y2) {
+                SDL_Rect connector = { std::min(x1, x2), y1, abs(x1 - x2) + 12, 12 };
+                SDL_RenderFillRect(renderer, &connector);
+            }
+        }
+    }
+
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    SDL_Rect foodRect = { foodPosition.first, foodPosition.second, 10, 10 };
+    SDL_RenderFillRect(renderer, &foodRect);
+
+    SDL_Color textColor = { 255, 255, 255, 255 };
+    std::string scoreText = "Score: " + std::to_string(score);
+    SDL_Surface* scoreSurface = TTF_RenderText_Solid(font, scoreText.c_str(), textColor);
+    SDL_Texture* scoreTexture = SDL_CreateTextureFromSurface(renderer, scoreSurface);
+    SDL_Rect scoreRect = { 10, 10, scoreSurface->w, scoreSurface->h };
+    SDL_RenderCopy(renderer, scoreTexture, nullptr, &scoreRect);
+    SDL_FreeSurface(scoreSurface);
+    SDL_DestroyTexture(scoreTexture);
+
+    std::string timerText = "Time: " + (currentMode == MODE_2 ? "∞" : std::to_string(timer));
+    SDL_Surface* timerSurface = TTF_RenderText_Solid(font, timerText.c_str(), textColor);
+    SDL_Texture* timerTexture = SDL_CreateTextureFromSurface(renderer, timerSurface);
+    SDL_Rect timerRect = { windowWidth - 150, 10, timerSurface->w, timerSurface->h };
+    SDL_RenderCopy(renderer, timerTexture, nullptr, &timerRect);
+    SDL_FreeSurface(timerSurface);
+    SDL_DestroyTexture(timerTexture);
+
+    if (snakeSpeed == snakeBoostedSpeed) {
+        std::string boostText = "Boost Mode";
+        SDL_Surface* boostSurface = TTF_RenderText_Solid(font, boostText.c_str(), textColor);
+        SDL_Texture* boostTexture = SDL_CreateTextureFromSurface(renderer, boostSurface);
+        SDL_Rect boostRect = { windowWidth - 150, 50, boostSurface->w, boostSurface->h };
+        SDL_RenderCopy(renderer, boostTexture, nullptr, &boostRect);
+        SDL_FreeSurface(boostSurface);
+        SDL_DestroyTexture(boostTexture);
+    }
+
+    std::string fpsText = "FPS: " + std::to_string(fps);
+    SDL_Surface* fpsSurface = TTF_RenderText_Solid(font, fpsText.c_str(), textColor);
+    SDL_Texture* fpsTexture = SDL_CreateTextureFromSurface(renderer, fpsSurface);
+    SDL_Rect fpsRect = { 10, 50, fpsSurface->w, fpsSurface->h };
+    SDL_RenderCopy(renderer, fpsTexture, nullptr, &fpsRect);
+    SDL_FreeSurface(fpsSurface);
+    SDL_DestroyTexture(fpsTexture);
+
+    if (gameOver) {
+        std::string gameOverText = (score >= foodGoal && foodGoal != -1) ? "You Won!" : (timer <= 0 && timer != -1) ? "Time's Up! Game Over!" : "Game Over!";
+        SDL_Surface* gameOverSurface = TTF_RenderText_Solid(font, gameOverText.c_str(), textColor);
+        SDL_Texture* gameOverTexture = SDL_CreateTextureFromSurface(renderer, gameOverSurface);
+        SDL_Rect gameOverRect = { windowWidth / 2 - 100, windowHeight / 2 - 25, gameOverSurface->w, gameOverSurface->h };
+        SDL_RenderCopy(renderer, gameOverTexture, nullptr, &gameOverRect);
+        SDL_FreeSurface(gameOverSurface);
+        SDL_DestroyTexture(gameOverTexture);
+    }
+
+    if (isPaused) {
+        SDL_Color pauseColor = { 255, 255, 0, 255 };
+        SDL_Surface* pauseSurface = TTF_RenderText_Solid(font, "Paused", pauseColor);
+        SDL_Texture* pauseTexture = SDL_CreateTextureFromSurface(renderer, pauseSurface);
+        SDL_Rect pauseRect = { windowWidth / 2 - 50, windowHeight / 2 - 50, pauseSurface->w, pauseSurface->h };
+        SDL_RenderCopy(renderer, pauseTexture, nullptr, &pauseRect);
+        SDL_FreeSurface(pauseSurface);
+        SDL_DestroyTexture(pauseTexture);
+    }
+}
+
+void Engine::resetSnakeGame() {
+    snakeGameActive = false;
+    gameOver = false;
+    isPaused = false;
+    snakeBody.clear();
+    currentMode = MODE_NONE;
+    std::cout << "Snake game reset." << std::endl;
+}
+
+void Engine::renderMenu() {
+    SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
+    SDL_RenderClear(renderer);
+
+    SDL_Color textColor = { 255, 255, 255, 255 };
+    SDL_Surface* titleSurface = TTF_RenderText_Solid(font, "Main Menu", textColor);
+    SDL_Texture* titleTexture = SDL_CreateTextureFromSurface(renderer, titleSurface);
+    SDL_Rect titleRect = { windowWidth / 2 - 100, 100, titleSurface->w, titleSurface->h };
+    SDL_RenderCopy(renderer, titleTexture, nullptr, &titleRect);
+    SDL_FreeSurface(titleSurface);
+    SDL_DestroyTexture(titleTexture);
+
+    std::vector<std::string> menuOptions = { "1. Start Game", "2. Toggle Fullscreen", "3. Quit" };
+    int startY = 200;
+    for (size_t i = 0; i < menuOptions.size(); i++) {
+        SDL_Surface* optionSurface = TTF_RenderText_Solid(font, menuOptions[i].c_str(), textColor);
+        SDL_Texture* optionTexture = SDL_CreateTextureFromSurface(renderer, optionSurface);
+        SDL_Rect optionRect = { windowWidth / 2 - 100, startY + static_cast<int>(i) * 50, optionSurface->w, optionSurface->h };
+        SDL_RenderCopy(renderer, optionTexture, nullptr, &optionRect);
+        SDL_FreeSurface(optionSurface);
+        SDL_DestroyTexture(optionTexture);
+    }
+
+    SDL_RenderPresent(renderer);
+}
+
+void Engine::drawTextBox() {
+    std::cout << "Drawing text box..." << std::endl;
+
+    SDL_Rect textBoxRect = { windowWidth / 2 - 400, windowHeight / 2 - 150, 800, 300 };
+    SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
+    SDL_RenderFillRect(renderer, &textBoxRect);
+
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderDrawRect(renderer, &textBoxRect);
+
+    if (showHelp) {
+        std::vector<std::string> helpText = {
+            "Shortcut Keys:", "C: Open/Close Chat Box", "X: Return to Main Menu", "E: Toggle Earth Gravity",
+            "M: Toggle Moon Gravity", "R: Change Rectangle Color to Red", "G: Change Rectangle Color to Green",
+            "B: Change Rectangle Color to Blue", "S: Pause/Resume Game", "Arrow Keys: Move Snake",
+            "Backspace: Delete Last Character in Chat", "Type 'play mode1' for Mode 1 (120s, 20 food)",
+            "Type 'play mode2' for Mode 2 (unlimited)", "Type 'play mode3 time x food y' for Mode 3"
+        };
+        SDL_Color textColor = { 255, 255, 255, 255 };
+        int lineHeight = 20;
+        int startY = windowHeight / 2 - 130;
+
+        for (size_t i = 0; i < helpText.size(); i++) {
+            SDL_Surface* textSurface = TTF_RenderText_Solid(font, helpText[i].c_str(), textColor);
+            SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+            SDL_Rect textRect = { windowWidth / 2 - 390, startY + static_cast<int>(i) * lineHeight, textSurface->w, textSurface->h };
+            SDL_RenderCopy(renderer, textTexture, nullptr, &textRect);
+            SDL_FreeSurface(textSurface);
+            SDL_DestroyTexture(textTexture);
+        }
+    }
+    else {
+        std::string displayText = inputText;
+        int maxCharsPerLine = 96;
+        int lineHeight = 20;
+
+        for (size_t i = 0; i < displayText.length(); i += maxCharsPerLine) {
+            std::string line = displayText.substr(i, maxCharsPerLine);
+            SDL_Color textColor = { 255, 255, 255, 255 };
+            SDL_Surface* textSurface = TTF_RenderText_Solid(font, line.c_str(), textColor);
+            SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+            SDL_Rect textRect = { windowWidth / 2 - 390, windowHeight / 2 - 30 + static_cast<int>(i / maxCharsPerLine) * lineHeight, textSurface->w, textSurface->h };
+            SDL_RenderCopy(renderer, textTexture, nullptr, &textRect);
+            SDL_FreeSurface(textSurface);
+            SDL_DestroyTexture(textTexture);
+        }
+    }
+}
+
+void Engine::setBackgroundColor(const std::string& colorName) {
+    if (colorName == "white") backgroundColor = { 255, 255, 255, 255 };
+    else if (colorName == "black") backgroundColor = { 0, 0, 0, 255 };
+    else if (colorName == "red") backgroundColor = { 255, 0, 0, 255 };
+    else if (colorName == "green") backgroundColor = { 0, 255, 0, 255 };
+    else if (colorName == "blue") backgroundColor = { 0, 0, 255, 255 };
+    else std::cerr << "Unknown color: " << colorName << std::endl;
+}
+
+void Engine::update() {
+    Uint32 currentTime = SDL_GetTicks();
+    deltaTime = (currentTime - lastUpdateTime) / 1000.0f;
+    lastUpdateTime = currentTime;
+
+    if (snakeGameActive) {
+        updateSnakeGame();
+    }
+    else if (gravityMode) {
+        velocityY += gravityAcceleration * deltaTime * 60.0f;
+        rectY += static_cast<int>(velocityY * deltaTime * 60.0f);
+
+        if (rectY + rectHeight >= windowHeight) {
+            rectY = windowHeight - rectHeight;
+            velocityY = -velocityY * bounceFactor;
+            if (std::abs(velocityY) < 1.0f) {
+                velocityY = 0;
+                isOnGround = true;
+            }
+        }
+
+        if (isOnGround) {
+            velocityY *= (1.0f - groundFriction * deltaTime * 60.0f);
+        }
+        else {
+            isOnGround = false;
+        }
+    }
+
+    frameCount++;
+    if (currentTime - lastFPSUpdateTime >= 1000) {
+        fps = frameCount;
+        frameCount = 0;
+        lastFPSUpdateTime = currentTime;
+        std::cout << "FPS: " << fps << std::endl;
+    }
+}
+
+void Engine::render() {
+    SDL_SetRenderDrawColor(renderer, backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a);
+    SDL_RenderClear(renderer);
+
+    if (snakeGameActive) {
+        renderSnakeGame();
+    }
+    else {
+        SDL_Rect rect = { rectX, rectY, rectWidth, rectHeight };
+        SDL_SetRenderDrawColor(renderer, rectColor.r, rectColor.g, rectColor.b, rectColor.a);
+        SDL_RenderFillRect(renderer, &rect);
+
+        SDL_Color textColor = gravityMode ? SDL_Color{ 255, 0, 0, 255 } : SDL_Color{ 255, 255, 255, 255 };
+        SDL_Surface* textSurface = TTF_RenderText_Solid(font, gravityText.c_str(), textColor);
+        SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+        SDL_Rect textRect = { windowWidth - 200, 10, textSurface->w, textSurface->h };
+        SDL_RenderCopy(renderer, textTexture, nullptr, &textRect);
+        SDL_FreeSurface(textSurface);
+        SDL_DestroyTexture(textTexture);
+    }
+
+    if (showTextBox) {
+        drawTextBox();
+    }
+
+    SDL_RenderPresent(renderer);
+}
+
+void Engine::run() {
+    SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+    while (isRunning) {
+        handleEvents();
+        update();
+        render();
+        SDL_Delay(8);
+    }
+}
