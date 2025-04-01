@@ -1,5 +1,5 @@
 ## FPS Optimization
-- Graphics improvements are in progress. (Ready)
+- Graphics improvements are ready.
 
 ## Features
 - **Multiplayer Prototype** (Experimental in progress)
