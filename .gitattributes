@@ -2,3 +2,5 @@
 *.h linguist-language=C++ 
 *.hpp linguist-language=C++ 
 *.tex linguist-detectable=false 
+*.md linguist-detectable=false 
+*.txt linguist-detectable=false 
